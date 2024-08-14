@@ -17,13 +17,13 @@ def _pluck_name_and_value(default_column, row):
     return {"name": row[name_column], "value": str(row[value_column])}
 
 
-def _load_result(query_id, org, current_user):
+def _load_result(query_id, org, current_user = None):
     from redash import models
 
     query = models.Query.get_by_id_and_org(query_id, org)
 
     # Role based dropdown query
-    if "[[user_groups]]" in query.query_text:
+    if "[[user_groups]]" in query.query_text and current_user:
         permissions = current_user.group_ids
         query.query_text = query.query_text.replace("[[user_groups]]", f"({','.join(map(str, permissions))})")
 
@@ -38,7 +38,7 @@ def _load_result(query_id, org, current_user):
         raise QueryDetachedFromDataSourceError(query_id)
 
 
-def dropdown_values(query_id, org, current_user):
+def dropdown_values(query_id, org, current_user = None):
     data = _load_result(query_id, org, current_user)
     first_column = data["columns"][0]["name"]
     pluck = partial(_pluck_name_and_value, first_column)
@@ -130,8 +130,12 @@ class ParameterizedQuery:
         self.template = template
         self.query = template
         self.parameters = {}
+        self.current_user = None
 
-    def apply(self, parameters):
+    def apply(self, parameters, current_user = None):
+        if current_user is not None:
+            self.current_user = current_user
+
         invalid_parameter_names = [key for (key, value) in parameters.items() if not self._valid(key, value)]
         if invalid_parameter_names:
             raise InvalidParameterError(invalid_parameter_names)
@@ -168,7 +172,7 @@ class ParameterizedQuery:
             "enum": lambda value: _is_value_within_options(value, enum_options, allow_multiple_values),
             "query": lambda value: _is_value_within_options(
                 value,
-                [v["value"] for v in dropdown_values(query_id, self.org)],
+                [v["value"] for v in dropdown_values(query_id, self.org, self.current_user)],
                 allow_multiple_values,
             ),
             "date": _is_date,
