@@ -26,3 +26,10 @@ class BelongsToOrgMixin:
         else:
             query = query.join(org_cls).filter(org_cls.org == org)
         return query.one()
+    
+    @classmethod
+    def get_by_id_when_no_latest(cls, query):
+        query_runner = query.data_source.query_runner
+
+        data = query_runner.run_query(query.query_text, None)
+        return data

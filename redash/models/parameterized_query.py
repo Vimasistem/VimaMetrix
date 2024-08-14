@@ -17,20 +17,29 @@ def _pluck_name_and_value(default_column, row):
     return {"name": row[name_column], "value": str(row[value_column])}
 
 
-def _load_result(query_id, org):
+def _load_result(query_id, org, current_user):
     from redash import models
 
     query = models.Query.get_by_id_and_org(query_id, org)
 
+    # Role based dropdown query
+    if "[[user_groups]]" in query.query_text:
+        permissions = current_user.group_ids
+        query.query_text = query.query_text.replace("[[user_groups]]", f"({','.join(map(str, permissions))})")
+
     if query.data_source:
+        if query.latest_query_data_id is None:
+            query_result = models.QueryResult.get_by_id_when_no_latest(query)
+            return query_result[0]
+        
         query_result = models.QueryResult.get_by_id_and_org(query.latest_query_data_id, org)
         return query_result.data
     else:
         raise QueryDetachedFromDataSourceError(query_id)
 
 
-def dropdown_values(query_id, org):
-    data = _load_result(query_id, org)
+def dropdown_values(query_id, org, current_user):
+    data = _load_result(query_id, org, current_user)
     first_column = data["columns"][0]["name"]
     pluck = partial(_pluck_name_and_value, first_column)
     return list(map(pluck, data["rows"]))
