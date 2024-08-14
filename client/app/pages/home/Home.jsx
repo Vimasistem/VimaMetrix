@@ -77,8 +77,8 @@ export default function Home() {
         {includes(messages, "email-not-verified") && <EmailNotVerifiedAlert />}
         <DynamicComponent name="Home.EmptyState">
           <EmptyState
-            header="Welcome to Redash 👋"
-            description="Connect to any data source, easily visualize and share your data"
+            header="Bienvenido a VimaMetrix 👋"
+            description="Conecta tus bases de datos, visualiza y comparte de manera sencilla tu informacion"
             illustration="dashboard"
             helpMessage={<EmptyStateHelpMessage helpTriggerType="GETTING_STARTED" />}
             showDashboardStep
@@ -97,7 +97,7 @@ routes.register(
   "Home",
   routeWithUserSession({
     path: "/",
-    title: "Redash",
+    title: "VimaMetrix",
     render: pageProps => <Home {...pageProps} />,
   })
 );
