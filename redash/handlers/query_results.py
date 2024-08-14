@@ -67,7 +67,13 @@ def run_query(query, parameters, data_source, query_id, should_apply_auto_limit,
             message = "{} is paused. Please try later.".format(data_source.name)
 
         return error_response(message)
-
+    
+    # User group based query
+    if "[[user_groups]]" in query.text:
+        permissions = current_user.group_ids
+        query.query = query.query.replace("[[user_groups]]", f"({','.join(map(str, permissions))})")
+        query.template = query.template.replace("[[user_groups]]", f"({','.join(map(str, permissions))})")
+    
     try:
         query.apply(parameters)
     except (InvalidParameterError, QueryDetachedFromDataSourceError) as e:
